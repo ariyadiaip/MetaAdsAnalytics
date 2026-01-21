@@ -191,8 +191,8 @@ def show_about_modal():
     """)
     
     data_tim = [
-        {"NIM": "10122084", "Nama": "Frederick Cornelius Nathaniel"},
         {"NIM": "10121305", "Nama": "Alief Sidik Gunawan"},
+        {"NIM": "10122084", "Nama": "Frederick Cornelius Nathaniel"},
         {"NIM": "10122901", "Nama": "Aip Ariyadi"},
         {"NIM": "10122907", "Nama": "Vina Lestari"},
         {"NIM": "10122912", "Nama": "Annisaa Fitri"},

@@ -519,13 +519,13 @@ if df_sales_clean is not None:
             umur = row['Target_Age_Ads']
             
             if "Champion" in segmen or ("Loyal" in segmen and "Potential" not in segmen):
-                return f"RETENTION: Tawarkan 'Exclusive Bundle' {produk}. Targetkan area {kota} (Umur {umur}). Fokus jaga loyalitas."
+                return f"RETENTION & EXCLUSIVE UPSELLING: Tawarkan 'Exclusive Bundle' {produk}. Targetkan area {kota} (Umur {umur}). Fokus jaga loyalitas."
             elif "Potential" in segmen:
-                return f"PROMOTION: Cross-sell produk {produk} ke pelanggan di {kota}. Targetkan audiens {umur} untuk naikkan frekuensi."
+                return f"CROSS-SELLING: Tawarkan varian lain/paket bundling {produk} ke pelanggan di {kota}. Targetkan audiens {umur} untuk meningkatkan Frekuensi & Nilai Transaksi."
             elif "New" in segmen:
-                return f"ONBOARDING: Dorong pembelian kedua untuk {produk}. Gunakan iklan testimoni di {kota} (Target {umur})."
+                return f"ACTIVATION: Dorong pembelian ke-2 (Repeat Order) untuk {produk}. Gunakan iklan testimoni di {kota} (Target {umur}). Fokus mendorong pembelian ulang."
             elif "Hibernating" in segmen or "Low" in segmen:
-                return f"WIN-BACK: Beri diskon khusus/ongkir untuk {produk}. Fokus area {kota} saja untuk hemat budget."
+                return f"WIN-BACK (EFFICIENT): Beri diskon 'Hard Offer' waktu terbatas untuk {produk}. Fokus area {kota} saja untuk menghemat anggaran dan hentikan jika tidak memberikan dampak positif."
             else:
                 return f"GENERAL: Optimalkan iklan {produk} di {kota}."
 

@@ -6,6 +6,7 @@ import re
 import os
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 from PIL import Image
@@ -398,6 +399,60 @@ if df_sales_clean is not None:
             st.pyplot(fig_city)
         # =========================================================
 
+        # FITUR TAMBAHAN: TOP 3 BULANAN (Hanya muncul jika filter Q3)
+        if pilihan_bulan == "Semua Data (Q3)":
+            st.markdown("---")
+            st.subheader("📅 Tren Produk Bulanan (Seasonal vs Top Q3)")
+            
+            global_top_names = top_products['product_clean'].tolist()
+            
+            cols_months = st.columns(3)
+            months_order = ['JULI', 'AGUSTUS', 'SEPTEMBER']
+            
+            for i, month in enumerate(months_order):
+                with cols_months[i]:
+                    st.markdown(f"##### {month}")
+                    
+                    # Filter data khusus bulan tersebut
+                    df_month = df_sales_clean[df_sales_clean['source_month'] == month]
+                    
+                    if not df_month.empty:
+                        # Cari Top 3 Produk di bulan tersebut
+                        top3_month = df_month.groupby('product_clean')['net_revenue'].sum().sort_values(ascending=False).head(3).reset_index()
+                        
+                        # Loop untuk menampilkan produk dan badge
+                        for idx, row in top3_month.iterrows():
+                            p_name = row['product_clean']
+                            p_rev = row['net_revenue']
+                            
+                            # Logika Badge
+                            if p_name in global_top_names:
+                                badge = "🏆 <b>Top Q3</b>"  # Produk ini memang konsisten laris
+                                color_bg = "#e3f2fd"     # Biru muda (Consistent)
+                            else:
+                                badge = "🌤️ <b>Seasonal</b>" # Produk ini cuma laku keras di bulan tertentu
+                                color_bg = "#fff3e0"     # Oranye muda (Seasonal)
+                            
+                            # Tampilan Card Sederhana
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    background-color: {color_bg}; 
+                                    padding: 10px; 
+                                    border-radius: 8px; 
+                                    margin-bottom: 10px;
+                                    border: 1px solid #ddd;">
+                                    <small style="color: #555;">#{idx+1}</small><br>
+                                    <strong style="font-size: 14px;">{p_name}</strong><br>
+                                    <span style="font-size: 12px; color: #333;">{format_big_number(p_rev)}</span><br>
+                                    <span style="font-size: 11px;">{badge}</span>
+                                </div>
+                                """, 
+                                unsafe_allow_html=True
+                            )
+                    else:
+                        st.info("Tidak ada data.")
+
     # === TAB 2: SEGMENTASI PELANGGAN ===
     with tab2:
         st.subheader("Analisis Segmentasi RFM (K-Means)")
@@ -487,6 +542,79 @@ if df_sales_clean is not None:
             ax_scatter.set_ylabel("Monetary (Rp)")
             
             st.pyplot(fig_scatter)
+
+        st.markdown("---")
+        st.subheader("Analisis Nilai & Loyalitas Segmen")
+        
+        col_deep1, col_deep2 = st.columns(2)
+
+        # --- REVENUE PER SEGMENT ---
+        with col_deep1:
+            st.markdown("##### 💸 Total Kontribusi Revenue per Segmen")
+            
+            rev_per_seg = df_rfm.groupby('Segment_Name')['Monetary'].sum().sort_values(ascending=False).reset_index()
+            
+            fig_rev, ax_rev = plt.subplots(figsize=(6, 4))
+            sns.barplot(
+                data=rev_per_seg,
+                y='Segment_Name',
+                x='Monetary',
+                hue='Segment_Name',
+                legend=False,
+                palette='Blues_r',
+                ax=ax_rev
+            )
+            
+            ax_rev.set_xlabel("Total Revenue")
+            ax_rev.set_ylabel("")
+            sns.despine(left=True, bottom=False)
+            
+            def currency_fmt(x, pos):
+                return format_big_number(x)
+            
+            ax_rev.xaxis.set_major_formatter(ticker.FuncFormatter(currency_fmt))
+            
+            st.pyplot(fig_rev)
+            
+            # Insight Text
+            top_seg_rev = rev_per_seg.iloc[0]['Segment_Name']
+            st.caption(f"💡 Segmen **{top_seg_rev}** adalah penyumbang omzet terbesar bagi perusahaan.")
+
+        # --- REPEAT RATE PER SEGMENT ---
+        with col_deep2:
+            st.markdown("##### 🔄 Tingkat Repeat Order (%) per Segmen")
+            
+            # 1. Hitung Repeat Rate (Frequency > 1) - Metode Vectorized
+            total_users = df_rfm.groupby('Segment_Name')['name'].count()
+            repeat_users = df_rfm[df_rfm['Frequency'] > 1].groupby('Segment_Name')['name'].count()
+            
+            repeat_users = repeat_users.reindex(total_users.index, fill_value=0)
+            
+            repeat_rate_series = (repeat_users / total_users) * 100
+            repeat_data = repeat_rate_series.reset_index(name='Repeat_Rate').sort_values(by='Repeat_Rate', ascending=False)
+            
+            fig_rep, ax_rep = plt.subplots(figsize=(6, 4))
+            sns.barplot(
+                data=repeat_data,
+                y='Segment_Name',
+                x='Repeat_Rate',
+                hue='Segment_Name',
+                legend=False,
+                palette='Greens_r',
+                ax=ax_rep
+            )
+            
+            for container in ax_rep.containers:
+                ax_rep.bar_label(container, fmt='%.1f%%', padding=3, fontsize=10)
+                
+            ax_rep.set_xlabel("Persentase Repeat Order (%)")
+            ax_rep.set_ylabel("")
+            ax_rep.set_xlim(0, 115)
+            sns.despine(left=True, bottom=False)
+            
+            st.pyplot(fig_rep)
+            
+            st.caption("💡 Menunjukkan persentase pelanggan di setiap segmen yang sudah belanja lebih dari 1 kali.")
 
     # === TAB 3: STRATEGI BISNIS ===
     with tab3:

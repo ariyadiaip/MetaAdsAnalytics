@@ -95,16 +95,13 @@ def load_and_merge_data(file_name, month_list):
     file_path = os.path.join(DATA_FOLDER, file_name)
     all_data = []
     
-    # Cek apakah file ada
     if not os.path.exists(file_path):
         st.error(f"File tidak ditemukan: {file_path}. Pastikan file ada di folder 'DATAQ3'.")
         return pd.DataFrame()
 
     for bulan in month_list:
         try:
-            # Membaca sheet spesifik
             df_temp = pd.read_excel(file_path, sheet_name=bulan)
-            # Menambah penanda bulan (untuk tracking filter)
             df_temp['source_month'] = bulan
             all_data.append(df_temp)
         except Exception as e:
@@ -119,10 +116,10 @@ def load_and_merge_data(file_name, month_list):
 def clean_product_name(text):
     if pd.isna(text): return ""
     text = str(text).upper()
-    text = re.sub(r'\s*\(.*?\)', '', text) # Hapus dalam kurung
+    text = re.sub(r'\s*\(.*?\)', '', text)
     if ' - ' in text:
-        text = text.split(' - ')[-1] # Ambil kata terakhir setelah strip
-    text = re.sub(r'^\w*\d\w*\s+', '', text) # Hapus kode awalan angka
+        text = text.split(' - ')[-1]
+    text = re.sub(r'^\w*\d\w*\s+', '', text)
     return text.strip()
 
 def process_data(df_sales_raw, df_ads_raw):
@@ -219,7 +216,6 @@ with col_logo:
         st.write("♾️")
 
 with col_title:
-    # Gunakan margin top negatif di markdown agar lurus dengan logo
     st.markdown("""
     <h1 style='margin-bottom: 0px; margin-top: 0px;'>
         Sistem Analisis & Optimasi Strategi Iklan Digital
@@ -260,7 +256,7 @@ with st.spinner('Sedang memuat data...'):
     df_ads_raw = load_and_merge_data('Data Campaign.xlsx', all_months)
 
 if df_sales_raw.empty or df_ads_raw.empty:
-    st.stop() # Berhenti jika data kosong
+    st.stop()
 
 # --- FILTERING DATA BERDASARKAN BULAN PILIHAN ---
 if pilihan_bulan != "Semua Data (Q3)":
@@ -276,7 +272,6 @@ df_sales_clean, df_ads_clean = process_data(df_sales_filtered, df_ads_filtered)
 if df_sales_clean is not None:
     
     # --- RFM CALCULATION ---
-    # Tentukan Snapshot Date (Besoknya dari transaksi terakhir di data yang difilter)
     max_date = df_sales_clean['created_at'].max()
     snapshot_date = max_date + dt.timedelta(days=1)
     
@@ -293,7 +288,7 @@ if df_sales_clean is not None:
     scaler = StandardScaler()
     rfm_scaled = scaler.fit_transform(df_rfm[['Recency', 'Frequency', 'Monetary']])
     
-    # KMeans K=5 (Fixed sesuai riset notebook)
+    # KMeans K=5
     kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
     df_rfm['Cluster'] = kmeans.fit_predict(rfm_scaled)
     
@@ -312,7 +307,6 @@ if df_sales_clean is not None:
     cluster_map = {row['Cluster']: segment_names[i] for i, row in cluster_summary.iterrows()}
     df_rfm['Segment_Name'] = df_rfm['Cluster'].map(cluster_map)
     
-    # Merge Segmen kembali ke Data Transaksi
     df_final = df_sales_clean.merge(df_rfm[['name', 'Segment_Name']], on='name', how='left')
 
     # --- TABS VISUALISASI ---
@@ -399,7 +393,7 @@ if df_sales_clean is not None:
             st.pyplot(fig_city)
         # =========================================================
 
-        # FITUR TAMBAHAN: TOP 3 BULANAN (Hanya muncul jika filter Q3)
+        # FITUR TOP 3 BULANAN (Hanya muncul jika filter Q3)
         if pilihan_bulan == "Semua Data (Q3)":
             st.markdown("---")
             st.subheader("📅 Tren Produk Bulanan (Seasonal vs Top Q3)")
@@ -420,7 +414,6 @@ if df_sales_clean is not None:
                         # Cari Top 3 Produk di bulan tersebut
                         top3_month = df_month.groupby('product_clean')['net_revenue'].sum().sort_values(ascending=False).head(3).reset_index()
                         
-                        # Loop untuk menampilkan produk dan badge
                         for idx, row in top3_month.iterrows():
                             p_name = row['product_clean']
                             p_rev = row['net_revenue']
@@ -428,12 +421,11 @@ if df_sales_clean is not None:
                             # Logika Badge
                             if p_name in global_top_names:
                                 badge = "🏆 <b>Top Q3</b>"  # Produk ini memang konsisten laris
-                                color_bg = "#e3f2fd"     # Biru muda (Consistent)
+                                color_bg = "#e3f2fd"
                             else:
                                 badge = "🌤️ <b>Seasonal</b>" # Produk ini cuma laku keras di bulan tertentu
-                                color_bg = "#fff3e0"     # Oranye muda (Seasonal)
+                                color_bg = "#fff3e0"
                             
-                            # Tampilan Card Sederhana
                             st.markdown(
                                 f"""
                                 <div style="
@@ -486,15 +478,14 @@ if df_sales_clean is not None:
             # Plot Bar Chart Horizontal
             sns.barplot(
                 data=seg_counts, 
-                y='Label',          # Gunakan label yang ada persentasenya
+                y='Label',         
                 x='Jumlah Customer', 
                 hue='Label',
                 legend=False,
-                palette='viridis',  # Warna distinct agar beda tiap segmen
+                palette='viridis',  
                 ax=ax_bar_seg
             )
             
-            # Tambahkan Angka Jumlah Orang di Ujung Batang
             for container in ax_bar_seg.containers:
                 ax_bar_seg.bar_label(container, padding=5, fmt='%d User', color='#333333')
             
@@ -502,7 +493,7 @@ if df_sales_clean is not None:
             sns.despine(left=True, bottom=True)
             ax_bar_seg.set_xlabel("")
             ax_bar_seg.set_ylabel("")
-            ax_bar_seg.set_xticks([]) # Hilangkan angka sumbu X
+            ax_bar_seg.set_xticks([])
             
             st.pyplot(fig_bar_seg)
             
@@ -536,7 +527,6 @@ if df_sales_clean is not None:
                 ax=ax_scatter
             )
             
-            # Hapus judul di dalam grafik
             ax_scatter.set_title("") 
             ax_scatter.set_xlabel("Recency (Hari)")
             ax_scatter.set_ylabel("Monetary (Rp)")
@@ -669,7 +659,6 @@ if df_sales_clean is not None:
         
         df_display_strategy = segment_profile[segment_profile['Segment_Name'].isin(pilihan_segmen_view)]
         
-        # Rename header untuk tampilan
         df_show = df_display_strategy[['Segment_Name', 'Jumlah_Pelanggan', 'product_clean', 'city', 'Target_Age_Ads', 'Strategi_Bisnis']].rename(columns={
             'Segment_Name': 'Segmen Pelanggan',
             'Jumlah_Pelanggan': 'Total User',
